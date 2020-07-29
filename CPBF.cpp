@@ -1,13 +1,15 @@
 /*
  * BrainFuck.cpp
- * CPBF: BrainFuck½âÊÍÆ÷
- * V1.0
- * by:Çâº¤ï®uuo ¹û¿Ç£¨ËûÃÇÊÇÒ»¸öÈË£©
+ * CPBF: BrainFuckè§£é‡Šå™¨
+ * V2.1.1
+ * by:æ°¢æ°¦é”‚uuo æœå£³ï¼ˆä»–ä»¬æ˜¯ä¸€ä¸ªäººï¼‰
  */
 
 #include <cstdio>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
+#include <ios>
 #include <map>
 #include <iterator>
 #include <string>
@@ -18,174 +20,709 @@ using namespace std;
 
 typedef unsigned int uint;
 
-char c[32767] = "";     //BF³ÌĞòÊı×é
-uint p = 0;             //´úÂëÖ´ĞĞ´¦
-string source = "";     //Ô´Âë×Ö·û´®
+char c[32767] = "";     //BFç¨‹åºæ•°ç»„
+uint p = 0;             //ä»£ç æ‰§è¡Œå¤„
+string source = "";     //æºç å­—ç¬¦ä¸²
+bool debugMem = false; //è°ƒè¯•æ¨¡å¼ï¼Œé»˜è®¤ä¸ºå…³
+bool debugSS = false;   //å•æ­¥è°ƒè¯•ï¼Œé»˜è®¤ä¸ºå…³
+int mem_m = 0,mem_x = 99;//å­˜å‚¨å†…å­˜ç›‘è§†å™¨çš„ç›‘è§†èŒƒå›´
+char stepKey = ' ';     //å•æ­¥è°ƒè¯•æ‰§è¡ŒæŒ‰é’®
+bool hasinputOrN = false;
+bool complie = false;
+bool ranOrN = false;
 int t = 1;
+bool putFrame = false;  //æ˜¯å¦å·²ç»è¾“å‡ºäº†çª—å£æ¡†æ¶
+ifstream conf("CPBFconf.ini");
 
-void init(int _argc,char* _argv[],bool& _exitOrNo,ifstream& _f_source,string& _sFN); //_argc:´ÓÖ÷º¯Êı´«µİ  _argv:´ÓÖ÷º¯Êı´«µİ
-                                                                                     //_exitOrNo:ÊÇ·ñÍË³ö  _f_source:³ÌĞòÔ´ÂëµÄÎÄ¼şÁ÷
-                                                                                     //_sFN:Ô´ÂëÎÄ¼şÃû£¨ËõĞ´£©
-int checkError(string _source);    //¸ø´úÂë²é´í£¬_source:´æ´¢´úÂëµÄ±äÁ¿
-int execute(string _source);      //Ö´ĞĞ´úÂë£¬_source:´æ´¢´úÂëµÄ±äÁ¿
+void init(int _argc,char* _argv[],bool& _exitOrNo,ifstream& _f_source,string& _sFN); //_argc:ä»ä¸»å‡½æ•°ä¼ é€’  _argv:ä»ä¸»å‡½æ•°ä¼ é€’
+                                                                                     //_exitOrNo:æ˜¯å¦é€€å‡º  _f_source:ç¨‹åºæºç çš„æ–‡ä»¶æµ
+                                                                                     //_sFN:æºç æ–‡ä»¶åï¼ˆç¼©å†™ä¸ºsFNï¼‰
+int checkError(string _source);    //ç»™ä»£ç æŸ¥é”™ï¼Œ_source:å­˜å‚¨ä»£ç çš„å˜é‡
+int execute(string _source);       //æ‰§è¡Œä»£ç ï¼Œ_source:å­˜å‚¨ä»£ç çš„å˜é‡
+int executeSS(string _source);     //ä»¥å•æ­¥æ‰§è¡Œçš„æ–¹å¼æ‰§è¡Œä»£ç 
+void debugMemFunc();               //debugâ€œå†…å­˜â€ç›‘è§†å™¨ç»˜åˆ¶
+void debugSSFunc(const string& _source,uint _pv_p);//debugâ€å•æ­¥è°ƒè¯•â€œçª—å£ç»˜åˆ¶
+void gotoxy(int x,int y);          //å°†å…‰æ ‡è·³è½¬åˆ°æŒ‡å®šä½ç½®
+void setcolor(int fg,int bg);      //æ”¹å˜çª—å£è¾“å‡ºå­—ç¬¦çš„å‰æ™¯è‰²å’ŒèƒŒæ™¯è‰²
+void getxy(int& x,int& y);         //è·å–å…‰æ ‡ä½ç½®
+void complier(const string& sourceFileName, const string& sourceCode);//ç¼–è¯‘
 
 int main(int argc,char* argv[])
 {
-    bool exitOrNo;                      //ÊÇ·ñÍË³ö
-    ifstream f_source;                  //³ÌĞòÔ´ÂëµÄÎÄ¼şÁ÷
-    string sourceFileName = "";         //Ô´ÂëÎÄ¼şÃû
-    init(argc,argv,exitOrNo,f_source,sourceFileName);  //µ÷ÓÃ³õÊ¼»¯º¯Êı
-    if(exitOrNo == true) exit(0);       //Èç¹ûÍË³ö±äÁ¿Îªtrue£¬ÔòÍË³ö
-    if(f_source.fail())                 //·ñÔò£¬Èç¹û´ò¿ªÊ§°Ü
+    bool exitOrNo;                      //æ˜¯å¦é€€å‡º
+    ifstream f_source;                  //ç¨‹åºæºç çš„æ–‡ä»¶æµ
+    string sourceFileName = "";         //æºç æ–‡ä»¶å
+    init(argc,argv,exitOrNo,f_source,sourceFileName);  //è°ƒç”¨åˆå§‹åŒ–å‡½æ•°
+    if(exitOrNo == true) exit(0);       //å¦‚æœé€€å‡ºå˜é‡ä¸ºtrueï¼Œåˆ™é€€å‡º
+    if(f_source.fail())                 //å¦åˆ™ï¼Œå¦‚æœæ‰“å¼€å¤±è´¥
     {
-        if(argc == 1)                   //Èç¹ûÃ»ÓĞ²ÎÊı£¨¼´Ö»ÓĞÒ»¸ö¡°²ÎÊı¡±£ºBrainFuck.exe£©
+        if(argc == 1)                   //å¦‚æœæ²¡æœ‰å‚æ•°ï¼ˆå³åªæœ‰ä¸€ä¸ªâ€œå‚æ•°â€ï¼šBrainFuck.exeï¼‰
         {
-            cout<<sourceFileName<<": ";perror("");  //Êä³öinit()º¯Êı·µ»ØµÄÓÃ»§ÊäÈëµÄÎÄ¼şÃû£¬ÔÙÊ¹ÓÃperror()º¯ÊıÊä³ö´íÎóÔ­Òò
-            exit(1);                                //ÍË³ö
+            cout<<sourceFileName<<": ";perror("");  //è¾“å‡ºinit()å‡½æ•°è¿”å›çš„ç”¨æˆ·è¾“å…¥çš„æ–‡ä»¶åï¼Œå†ä½¿ç”¨perror()å‡½æ•°è¾“å‡ºé”™è¯¯åŸå› 
+            exit(1);                                //é€€å‡º
         }
-        else if(argc >= 2)                          //Èç¹ûÓÃ»§ÊäÈëÁË²ÎÊı
+        else if(argc >= 2)                          //å¦‚æœç”¨æˆ·è¾“å…¥äº†å‚æ•°
         {
-            cout<<argv[1]<<": ";perror("");         //Êä³öÓÃ»§¸½¼ÓµÄ²ÎÊı£¬ÔÙÊä³ö´íÎóÔ­Òò
-            exit(1);                                //ÍË³ö
+            cout<<argv[1]<<": ";perror("");         //è¾“å‡ºç”¨æˆ·é™„åŠ çš„å‚æ•°ï¼Œå†è¾“å‡ºé”™è¯¯åŸå› 
+            exit(1);                                //é€€å‡º
         }
     }
-    istream_iterator<char> in(f_source),eos;        //ÊäÈëÁ÷µü´úÆ÷£¬ÓÃÀ´È·¶¨ÎÄ¼şµÄ¿ªÍ·ºÍ½áÎ²£¬ºöÂÔ¿Õ¸ñÓë»Ø³µ
-    copy(in,eos,back_inserter(source));             //Ê¹ÓÃ¸´ÖÆ²Ù×÷ÊäÈëÔ´Âëµ½source±äÁ¿
-    //for(int i = 0;i <= 50;++i)
+    istream_iterator<char> in(f_source),eos;        //è¾“å…¥æµè¿­ä»£å™¨ï¼Œç”¨æ¥ç¡®å®šæ–‡ä»¶çš„å¼€å¤´å’Œç»“å°¾ï¼Œå¿½ç•¥ç©ºæ ¼ä¸å›è½¦
+    copy(in,eos,back_inserter(source));             //ä½¿ç”¨å¤åˆ¶æ“ä½œè¾“å…¥æºç åˆ°sourceå˜é‡
+    f_source.close();
     source.push_back('\0');
-    int srcError = checkError(source);              //Ô´´úÂë²é´í
-    if(srcError == 0) {}                            //Êä³ö´íÎóĞÅÏ¢
-    else if(srcError == 1)
+    for(string::iterator iter = source.begin();iter != source.end();++iter)
     {
-        cout<<"Óï·¨´íÎó£º¡®[¡¯ÊıÁ¿Óë¡®]¡¯ÊıÁ¿²»ÏàµÈ¡£"<<endl;
+        if(*iter != '.' && *iter != ',' && *iter != '<' && *iter != '>' && *iter != '[' && *iter != ']' && *iter != '+' && *iter != '-' && *iter != '\0')
+        {
+            source.erase(iter);
+            --iter;
+        }
+    }
+    int srcError = checkError(source);              //æºä»£ç æŸ¥é”™
+    if(srcError == 1)
+    {
+        cout<<"è¯­æ³•é”™è¯¯ï¼šâ€˜[â€™æ•°é‡ä¸â€˜]â€™æ•°é‡ä¸ç›¸ç­‰ã€‚"<<endl;
         exit(-1);
     }
-    else if(srcError == 2)
+    if(complie == true)
     {
-        cout<<"Óï·¨´íÎó£ºÎ´ÖªµÄ×Ö·û¡£"<<endl;
-        exit(-1);
+        complier(sourceFileName,source);
+        return 0;
     }
-    else if(srcError == 3)
+    if(debugMem == true)
     {
-        cout<<"Óï·¨´íÎó£º¡®[¡¯ÊıÁ¿Óë¡®]¡¯ÊıÁ¿²»ÏàµÈ¡£"<<endl
-            <<"Óï·¨´íÎó£ºÎ´ÖªµÄ×Ö·û¡£"<<endl;
-        exit(-1);
+        bool confFileErr = false;
+        if(not conf)
+        {
+            if(debugMem == true and debugSS == true)
+                cout<<"\n\n\n\n\n\n\n\n";
+            else if(debugMem == true)
+                cout<<"\n\n\n\n\n\n";
+            else if(debugSS == true)
+                cout<<"\n\n\n";
+            else if(debugMem != true and debugSS != true);
+            cout<<"æ‰“å¼€é…ç½®æ–‡ä»¶é”™è¯¯ï¼Œä¸€åˆ‡å°†æŒ‰é»˜è®¤å¤„ç†ã€‚"<<endl;
+            confFileErr = true;
+        }
+        int mn = 0,mx = 99;
+        string temp;
+        char key = ' ';
+        conf>>temp;
+        if(temp != "[debugMemRange]")
+        {
+            if(debugMem == true and debugSS == true)
+                cout<<"\n\n\n\n\n\n\n\n";
+            else if(debugMem == true)
+                cout<<"\n\n\n\n\n\n";
+            else if(debugSS == true)
+                cout<<"\n\n\n";
+            else if(debugMem != true and debugSS != true);
+            cout<<"é…ç½®æ–‡ä»¶çš„è¯»å–å‡ºé”™ï¼Œè¯·æ£€æŸ¥é…ç½®æ–‡ä»¶æœªæŸåæˆ–æ ¼å¼æ­£ç¡®ã€‚"<<endl;
+            confFileErr = true;
+            goto jmpDebug;
+        }
+        else
+        {
+            conf>>mn;
+            if(not conf)
+            {
+                if(debugMem == true and debugSS == true)
+                    cout<<"\n\n\n\n\n\n\n\n";
+                else if(debugMem == true)
+                    cout<<"\n\n\n\n\n\n";
+                else if(debugSS == true)
+                    cout<<"\n\n\n";
+                else if(debugMem != true and debugSS != true);
+                cout<<"è¯»å–é…ç½®æ–‡ä»¶é”™è¯¯ã€‚"<<endl;
+                confFileErr = true;
+                goto jmpDebug;
+            }
+            conf>>mx;
+            if(not conf)
+            {
+                if(debugMem == true and debugSS == true)
+                    cout<<"\n\n\n\n\n\n\n\n";
+                else if(debugMem == true)
+                    cout<<"\n\n\n\n\n\n";
+                else if(debugSS == true)
+                    cout<<"\n\n\n";
+                else if(debugMem != true and debugSS != true);
+                cout<<"è¯»å–é…ç½®æ–‡ä»¶é”™è¯¯ã€‚"<<endl;
+                confFileErr = true;
+                goto jmpDebug;
+            }
+            conf>>temp;
+            conf>>key;
+            if((mx - mn != 99 and mn != 32700 and mn != 32767) or mn < 0 or mx > 32767)
+            {
+                if(debugMem == true and debugSS == true)
+                    cout<<"\n\n\n\n\n\n\n";
+                else if(debugMem == true)
+                    cout<<"\n\n\n\n\n\n";
+                else if(debugSS == true)
+                    cout<<"\n\n\n";
+                else if(debugMem != true and debugSS != true);
+                cout<<"é…ç½®æ–‡ä»¶çš„æ•°å­—ä¸åˆæ³•ï¼Œè¯¦è§å¸®åŠ©æ–‡æ¡£ã€‚"<<endl;
+                confFileErr = true;
+                goto jmpDebug;
+            }
+
+            mem_m = mn;
+            mem_x = mx;
+            stepKey = key;
+        }
+        jmpDebug:
+        conf.close();
+        if(confFileErr == false)
+        {
+            if(debugMem == true and debugSS == true)
+                cout<<"\n\n\n\n\n\n\n\n";
+            else if(debugMem == true)
+                cout<<"\n\n\n\n\n\n";
+            else if(debugSS == true)
+                cout<<"\n\n\n";
+            else if(debugMem != true and debugSS != true);
+        }
     }
-    int runningError = execute(source); //Ö´ĞĞÔ´´úÂë
-    return runningError;            //·µ»Ø
+    if(debugMem == true) debugMemFunc();
+    if(debugSS == true)
+    {
+        debugSSFunc(source,0);
+        int runningError = executeSS(source);
+        return runningError;
+    }
+    else
+    {
+        int runningError = execute(source); //æ‰§è¡Œæºä»£ç 
+        return runningError;            //è¿”å›
+    }
 }
 
 void init(int _argc,char* _argv[],bool& _exitOrNo,ifstream& _f_source,string& _sFN)
 {
-    string _sourceFileName = "";    //Ô´ÂëÎÄ¼şÃû£¬ÒÔ¹©Ö®ºóÊäÈë
-    if(_argc >= 2)                  //Èç¹ûÓĞÁ½¸ö¼°ÒÔÉÏµÄ²ÎÊı£¨Ò»¸öÎª³ÌĞòÃû£¬ÁíÒ»¸öÎª²ÎÊı£©
+    string _sourceFileName = "";    //æºç æ–‡ä»¶åï¼Œä»¥ä¾›ä¹‹åè¾“å…¥
+    if(_argc >= 3)
     {
-        _f_source.open(_argv[1]);   //´ò¿ªÎÄ¼ş£¨ºöÂÔÆäËûµÄ²ÎÊı£©
-        _exitOrNo = false;          //²»ÍË³ö
-        return;                     //·µ»Ø
-    }
-    else if(_argc == 1)             //Èç¹ûÖ»ÓĞÒ»¸ö²ÎÊı
-    {
-        cout<<"ÇëÊäÈëÎÄ¼şÃû(°´\'Ctrl+Z\'ÍË³ö)£º";   //ÌáÊ¾ÊäÈëÎÄ¼şÃû
-        cin>>_sourceFileName;       //ÊäÈë
-        if(not cin)                 //Èç¹ûÎª¿Õ£¨×Ö·û´®²»¿ÉÄÜ³ö´í£©
+        _f_source.open(_argv[1]);
+        for(int i = 2;i != _argc;++i)   //éå†_argvï¼ŒæŸ¥çœ‹æ˜¯å¦æœ‰é™„åŠ å‚æ•°
         {
-            _exitOrNo = true;       //ÍË³ö
-            return;                 //·µ»Ø
+            if(_argv[i][0] == '-' and _argv[i][1] == 'd' and _argv[i][2] == 'm' and _argv[i][3] == '\0') debugMem = true; //å¦‚æœæœ‰ï¼ŒdebugMemç½®ä¸ºtrue
+            if(_argv[i][0] == '-' and _argv[i][1] == 'd' and _argv[i][2] == 's' and _argv[i][3] == 's' and _argv[i][4] == '\0') debugSS = true;//åŒä¸Šï¼Œå•æ­¥è°ƒè¯•
+            if(_argv[i][0] == '-' and _argv[i][1] == 'c' and _argv[i][2] == '\0') complie = true;
         }
-        _sFN = _sourceFileName;     //½«ÓÃ»§ÊäÈëµÄº¯ÊıÃû¸³Öµ¸øÒıÓÃ
-        _f_source.open(_sourceFileName);    //·ñÔò´ò¿ªÎÄ¼ş
-        _exitOrNo = false;          //²»ÍË³ö
-        return;                     //·µ»Ø
+        _exitOrNo = false;
+        _sFN = _argv[1];            //å°†æ–‡ä»¶åèµ‹å€¼ç»™å¼•ç”¨
+        return;
+    }
+    else if(_argc >= 2)             //å¦‚æœæœ‰ä¸¤ä¸ªåŠä»¥ä¸Šå‚æ•°ï¼ˆä¸€ä¸ªä¸ºç¨‹åºåï¼Œå¦ä¸€ä¸ªä¸ºå‚æ•°ï¼‰
+    {
+        _f_source.open(_argv[1]);   //æ‰“å¼€æ–‡ä»¶
+        _sFN = _argv[1];            //å°†æ–‡ä»¶åèµ‹å€¼ç»™å¼•ç”¨
+        _exitOrNo = false;          //ä¸é€€å‡º
+        return;                     //è¿”å›
+    }
+    else if(_argc == 1)             //å¦‚æœåªæœ‰ä¸€ä¸ªå‚æ•°
+    {
+        char yn = ' ';
+        cout<<endl<<"è¯·è¾“å…¥æ–‡ä»¶å(æŒ‰\'Ctrl+Z\'é€€å‡º)ï¼š";   //æç¤ºè¾“å…¥æ–‡ä»¶å
+        cin>>_sourceFileName;       //è¾“å…¥
+        if(not cin)                 //å¦‚æœä¸ºç©ºï¼ˆå­—ç¬¦ä¸²ä¸å¯èƒ½å‡ºé”™ï¼‰
+        {
+            _exitOrNo = true;       //é€€å‡º
+            return;                 //è¿”å›
+        }
+        AskDebugMemOrNo:
+        cout<<endl<<"æ˜¯å¦å¼€å¯å†…å­˜ç›‘è§†?(Y/N)";    //è¯¢é—®æ˜¯å¦å¼€å¯Debugæ¨¡å¼
+        cin>>yn;
+        if((not cin) or (yn != 'Y' and yn != 'y' and yn != 'N' and yn != 'n'))
+        {
+            cout<<endl<<"è¯·è¾“å…¥Y(y)æˆ–N(n)ã€‚"<<endl;
+            goto AskDebugMemOrNo;
+        }
+        else if(yn == 'Y' or yn == 'y') debugMem = true;
+        AskDebugSSOrNo:
+        cout<<endl<<"æ˜¯å¦å¼€å¯å•æ­¥æ‰§è¡Œ?(Y/N)";
+        cin>>yn;
+        if((not cin) or (yn != 'Y' and yn != 'y' and yn != 'N' and yn != 'n'))
+        {
+            cout<<endl<<"è¯·è¾“å…¥Y(y)æˆ–N(n)ã€‚"<<endl;
+            goto AskDebugSSOrNo;
+        }
+        else if(yn == 'Y' or yn == 'y') debugSS = true;
+        AskComplieOrNo:
+        cout<<endl<<"æ˜¯å¦ç¼–è¯‘?(Y/N)";
+        cin>>yn;
+        if((not cin) or (yn != 'Y' and yn != 'y' and yn != 'N' and yn != 'n'))
+        {
+            cout<<endl<<"è¯·è¾“å…¥Y(y)æˆ–N(n)ã€‚"<<endl;
+            goto AskComplieOrNo;
+        }
+        else if(yn == 'Y' or yn == 'y') complie = true;
+        _sFN = _sourceFileName;     //å¦åˆ™å°†ç”¨æˆ·è¾“å…¥çš„å‡½æ•°åèµ‹å€¼ç»™å¼•ç”¨
+        _f_source.open(_sourceFileName);    //æ‰“å¼€æ–‡ä»¶
+        _exitOrNo = false;          //ä¸é€€å‡º
+        return;                     //è¿”å›
     }
 }
 
 int checkError(string _source)
 {
-    bool sqBrOK;                    //boolĞÍ±äÁ¿£¬´æ´¢·½À¨ºÅÊÇ·ñÆ¥Åä
-    bool charOK = true;             //boolĞÍ±äÁ¿£¬´æ´¢ÊÇ·ñÃ»ÓĞ²»Õı³£µÄ×Ö·û
-    map<char,int> sqBr;             //Ò»¸öÓ³Éä£¬À´´æ´¢×ó·½À¨ºÅºÍÓÒ·½À¨ºÅµÄÊıÁ¿
-    for(uint i = 0;i <= _source.size();++i)     //±éÀúÔ´ÂëÊı×é
+    bool sqBrOK;                    //boolå‹å˜é‡ï¼Œå­˜å‚¨æ–¹æ‹¬å·æ˜¯å¦åŒ¹é…
+    map<char,int> sqBr;             //ä¸€ä¸ªæ˜ å°„ï¼Œæ¥å­˜å‚¨å·¦æ–¹æ‹¬å·å’Œå³æ–¹æ‹¬å·çš„æ•°é‡
+    for(uint i = 0;i <= _source.size();++i)     //éå†æºç æ•°ç»„
     {
-        if(_source[i] == '[') ++sqBr['['];      //Èç¹û³öÏÖÒ»¸ö×ó·½À¨ºÅ£¬Õâ¸ö¼ü¶ÔÓ¦µÄÖµ¼ÓÒ»
-        else if(_source[i] == ']') ++sqBr[']']; //Èç¹û³öÏÖÒ»¸öÓÒ·½À¨ºÅ£¬Õâ¸ö¼ü¶ÔÓ¦µÄÖµ¼ÓÒ»
+        if(_source[i] == '[') ++sqBr['['];      //å¦‚æœå‡ºç°ä¸€ä¸ªå·¦æ–¹æ‹¬å·ï¼Œè¿™ä¸ªé”®å¯¹åº”çš„å€¼åŠ ä¸€
+        else if(_source[i] == ']') ++sqBr[']']; //å¦‚æœå‡ºç°ä¸€ä¸ªå³æ–¹æ‹¬å·ï¼Œè¿™ä¸ªé”®å¯¹åº”çš„å€¼åŠ ä¸€
     }
-    if(sqBr['['] == sqBr[']']) sqBrOK = true;   //Èç¹ûÁ½¸ö·½À¨ºÅµÄÊıÁ¿ÏàµÈ£¨Æ¥Åä£©£¬sqBrOK¸³ÖµÎªtrue
-    else sqBrOK = false;                       //Èç¹û²»ÏàµÈ£¬sqBrOK¸³ÖµÎªfalse
+    if(sqBr['['] == sqBr[']']) sqBrOK = true;   //å¦‚æœä¸¤ä¸ªæ–¹æ‹¬å·çš„æ•°é‡ç›¸ç­‰ï¼ˆåŒ¹é…ï¼‰ï¼ŒsqBrOKèµ‹å€¼ä¸ºtrue
+    else sqBrOK = false;                       //å¦‚æœä¸ç›¸ç­‰ï¼ŒsqBrOKèµ‹å€¼ä¸ºfalse
     for(uint i = 0;i <= _source.size();++i)
-    {                                           //¼ì²âÊÇ·ñÓĞ²»Õı³£µÄ×Ö·û
+    {                                           //æ£€æµ‹æ˜¯å¦æœ‰ä¸æ­£å¸¸çš„å­—ç¬¦
         if(_source[i] != '>' and _source[i] != '<' and _source[i] != '+' and _source[i] != '-'
            and _source[i] != '.' and _source[i] != ',' and _source[i] != '[' and _source[i] != ']' and _source[i] != '\0')
         {
-            charOK = false;                     //Èç¹ûÓĞµÄ»°£¬charOK¸³ÖµÎªfalse,ÓÉÓÚ±»³õÊ¼»¯Îªtrue£¬ËùÒÔÈç¹ûÃ»ÓĞ£¬¾ÍÎªtrue
+            _source[i] == ' ';                  //å¦‚æœæœ‰çš„è¯ï¼Œè¯·æˆç©ºæ ¼
         }
     }
-    if(sqBrOK == true and charOK == true) return 0;         //Èç¹ûÎŞ´í£¬·µ»Ø0
-    else if(sqBrOK == false and charOK == true) return 1;   //Èç¹ûÖ»ÓĞ·½À¨ºÅ²»Æ¥Åä£¬·µ»Ø1
-    else if(sqBrOK == true and charOK == false) return 2;   //Èç¹ûÖ»ÓĞ²»Õı³£µÄ×Ö·û£¬·µ»Ø2
-    else if(sqBrOK == false and charOK == false) return 3;  //Èç¹û·½À¨ºÅ²»Æ¥ÅäÇÒÓĞ²»Õı³£µÄ×Ö·û£¬·µ»Ø3
+    if(sqBrOK == true) return 0;         //å¦‚æœæ— é”™ï¼Œè¿”å›0
+    else if(sqBrOK == false) return 1;   //å¦‚æœæ–¹æ‹¬å·ä¸åŒ¹é…ï¼Œè¿”å›1
 }
 
 int execute(string _source)
 {
-    for(uint pv_p = 0;_source[pv_p] != '\0';++pv_p)     //±éÀú³ÌĞò´úÂë
+    for(uint pv_p = 0;_source[pv_p] != '\0';++pv_p)     //éå†ç¨‹åºä»£ç 
     {
-        Begin:
         switch(_source[pv_p])
         {
-        case '<':   //Ö¸Õë¼õ1£¬´øÒç³ö
+        case '<':   //æŒ‡é’ˆå‡1ï¼Œå¸¦æº¢å‡º
             --p;
-            if(p < 0) p = 32767;
+            if(p > 32767) p = 32767;
             break;
-        case '>':   //Ö¸Õë¼Ó1£¬´øÒç³ö
+        case '>':   //æŒ‡é’ˆåŠ 1ï¼Œå¸¦æº¢å‡º
             ++p;
             if(p > 32767) p = 0;
             break;
-        case '+':   //Ö¸ÕëÖ¸ÏòµÄÖµ¼Ó1
+        case '+':   //æŒ‡é’ˆæŒ‡å‘çš„å€¼åŠ 1
             ++c[p];
+            if(debugMem == true) debugMemFunc();
             break;
-        case '-':   //Ö¸ÕëÖ¸ÏòµÄÖµ¼õ1
+        case '-':   //æŒ‡é’ˆæŒ‡å‘çš„å€¼å‡1
             --c[p];
+            if(debugMem == true) debugMemFunc();
             break;
-        case ',':   //¶ÁÈ¡ÊäÈë
+        case ',':   //è¯»å–è¾“å…¥
             c[p] = _getch();
+            if(debugMem == true) debugMemFunc();
             break;
-        case '.':   //Êä³ö
-            cout<<c[p];
+        case '.':   //è¾“å‡º
+            printf("%c",c[p]);
+            if(debugMem == true) debugMemFunc();
+            break;
         case '[':
-            if(c[p] != 0) break;    //Èç¹ûµ±Ç°Ö¸ÕëÖ¸ÏòµÄÖµ²»Îª0£¬ÔòÌø³ö,·ñÔò
-            t = 1;                  //tÎª1
-            while(not t == 0)       //Ñ­»·Ö±µ½tÎª0
+            if(c[p] != 0) break;    //å¦‚æœå½“å‰æŒ‡é’ˆæŒ‡å‘çš„å€¼ä¸ä¸º0ï¼Œåˆ™è·³å‡º,å¦åˆ™
+            t = 1;                  //tä¸º1
+            while(t != 0)       //å¾ªç¯ç›´åˆ°tä¸º0
             {
-                ++pv_p;             //³ÌĞò´úÂëµÄÏÂÒ»¸ö·ûºÅ
-                if(_source[pv_p] == '\0')   //Èç¹ûµ½´ï³ÌĞò½áÎ²£¬Êä³ö´íÎóĞÅÏ¢£¬·µ»Ø
+                ++pv_p;             //ç¨‹åºä»£ç çš„ä¸‹ä¸€ä¸ªç¬¦å·
+                if(_source[pv_p] == '\0')   //å¦‚æœåˆ°è¾¾ç¨‹åºç»“å°¾ï¼Œè¾“å‡ºé”™è¯¯ä¿¡æ¯ï¼Œè¿”å›
                 {
-                    cout<<endl<<"ÔËĞĞÊ±´íÎó£º·½À¨ºÅ²»Æ¥Åä¡£"<<endl;
+                    cout<<"\n\n"<<"è¯­æ³•é”™è¯¯ï¼šæ–¹æ‹¬å·ä¸åŒ¹é…ã€‚"<<endl;
                     return 1;
                 }
-                if(_source[pv_p] == '[') ++t;   //Èç¹ûÓÖ³öÏÖÁËÒ»¸ö'['£¬t¼Ó1¡£
-                else if(_source[pv_p] == ']') --t;  //Èç¹û³öÏÖÁËÒ»¸ö']'£¬t¼õ1.
+                if(_source[pv_p] == '[') ++t;   //å¦‚æœåˆå‡ºç°äº†ä¸€ä¸ª'['ï¼ŒtåŠ 1ã€‚
+                else if(_source[pv_p] == ']') --t;  //å¦‚æœå‡ºç°äº†ä¸€ä¸ª']'ï¼Œtå‡1.
             }
-            ++pv_p;     //´Ó']'µÄÏÂÒ»¸öÎ»ÖÃÔËĞĞ
-            goto Begin; //ÓÉÓÚ²»ĞèÒªÔÙÊ¹pv_p×ÔÔö1£¬ËùÒÔÖ±½ÓÌøµ½Begin
         case ']':
-            if(c[p] == 0) break;    //Èç¹ûµ±Ç°Ö¸ÕëÖ¸ÏòµÄÖµÎª0£¬ÔòÌø³ö£¬·ñÔò
-            t = 1;                  //tÎª1
-            while(not t == 0)       //Ñ­»·Ö±µ½tÎª0
+            if(c[p] == 0) break;    //å¦‚æœå½“å‰æŒ‡é’ˆæŒ‡å‘çš„å€¼ä¸º0ï¼Œåˆ™è·³å‡ºï¼Œå¦åˆ™
+            t = 1;                  //tä¸º1
+            while(t != 0)       //å¾ªç¯ç›´åˆ°tä¸º0
             {
                 --pv_p;
-                if(_source[pv_p] == '\0')   //Èç¹ûµ½´ï³ÌĞò½áÎ²£¬Êä³ö´íÎóĞÅÏ¢£¬·µ»Ø
+                if(pv_p == -1)
                 {
-                    cout<<endl<<"ÔËĞĞÊ±´íÎó£º·½À¨ºÅ²»Æ¥Åä¡£"<<endl;
+                    cout<<"\n\n"<<"è¯­æ³•é”™è¯¯ï¼šæ–¹æ‹¬å·ä¸åŒ¹é…ã€‚"<<endl;
                     return 1;
                 }
-                if(_source[pv_p] == '[') --t;   //Èç¹û³öÏÖÁËÒ»¸ö'['£¬t¼õ1¡£
-                else if(_source[pv_p] == ']') ++t;  //Èç¹ûÓÖ³öÏÖÁËÒ»¸ö']'£¬t¼Ó1.
+                if(_source[pv_p] == '[') --t;   //å¦‚æœå‡ºç°äº†ä¸€ä¸ª'['ï¼Œtå‡1ã€‚
+                else if(_source[pv_p] == ']') ++t;  //å¦‚æœåˆå‡ºç°äº†ä¸€ä¸ª']'ï¼ŒtåŠ 1.
             }
-            ++pv_p;     //´Ó'['µÄÏÂÒ»¸öÎ»ÖÃÔËĞĞ
-            goto Begin; //ÓÉÓÚ²»ĞèÒªÔÙÊ¹pv_p×ÔÔö1£¬ËùÒÔÖ±½ÓÌøµ½Begin
+        case ' ':
+            break;
         case '\0':
             return 0;
         }
     }
+}
+
+int executeSS(string _source)
+{
+    ranOrN = true;
+    char key = ' ';
+    hasinputOrN = false;
+    for(uint pv_p = 0;_source[pv_p] != '\0';++pv_p)     //éå†ç¨‹åºä»£ç 
+    {
+        while(key = _getch())
+        {
+            if(key == stepKey) break;
+        }
+        debugSSFunc(_source,pv_p);
+        switch(_source[pv_p])
+        {
+        case '<':   //æŒ‡é’ˆå‡1ï¼Œå¸¦æº¢å‡º
+            --p;
+            if(p > 32767) p = 32767;
+            hasinputOrN = false;
+            break;
+        case '>':   //æŒ‡é’ˆåŠ 1ï¼Œå¸¦æº¢å‡º
+            ++p;
+            if(p > 32767) p = 0;
+            hasinputOrN = false;
+            break;
+        case '+':   //æŒ‡é’ˆæŒ‡å‘çš„å€¼åŠ 1
+            ++c[p];
+            if(debugMem == true) debugMemFunc();
+            hasinputOrN = false;
+            break;
+        case '-':   //æŒ‡é’ˆæŒ‡å‘çš„å€¼å‡1
+            --c[p];
+            if(debugMem == true) debugMemFunc();
+            hasinputOrN = false;
+            break;
+        case ',':   //è¯»å–è¾“å…¥
+            c[p] = _getch();
+            if(debugMem == true) debugMemFunc();
+            hasinputOrN = true;
+            debugSSFunc(_source,pv_p);
+            break;
+        case '.':   //è¾“å‡º
+            cout<<c[p];
+            if(debugMem == true) debugMemFunc();
+            hasinputOrN = false;
+            break;
+        case '[':
+            if(c[p] != 0)
+            {
+                hasinputOrN = false;
+                break;    //å¦‚æœå½“å‰æŒ‡é’ˆæŒ‡å‘çš„å€¼ä¸ä¸º0ï¼Œåˆ™è·³å‡º,å¦åˆ™
+            }
+            t = 1;                  //tä¸º1
+            while(t != 0)       //å¾ªç¯ç›´åˆ°tä¸º0
+            {
+                ++pv_p;             //ç¨‹åºä»£ç çš„ä¸‹ä¸€ä¸ªç¬¦å·
+                if(_source[pv_p] == '\0')   //å¦‚æœåˆ°è¾¾ç¨‹åºç»“å°¾ï¼Œè¾“å‡ºé”™è¯¯ä¿¡æ¯ï¼Œè¿”å›
+                {
+                    cout<<"\n\n"<<"è¯­æ³•é”™è¯¯ï¼šæ–¹æ‹¬å·ä¸åŒ¹é…ã€‚"<<endl;
+                    return 1;
+                }
+                if(_source[pv_p] == '[') ++t;   //å¦‚æœåˆå‡ºç°äº†ä¸€ä¸ª'['ï¼ŒtåŠ 1ã€‚
+                else if(_source[pv_p] == ']') --t;  //å¦‚æœå‡ºç°äº†ä¸€ä¸ª']'ï¼Œtå‡1.
+            }
+            hasinputOrN = false;
+        case ']':
+            if(c[p] == 0)
+            {
+                hasinputOrN = false;
+                break;    //å¦‚æœå½“å‰æŒ‡é’ˆæŒ‡å‘çš„å€¼ä¸º0ï¼Œåˆ™è·³å‡ºï¼Œå¦åˆ™
+            }
+            t = 1;                  //tä¸º1
+            while(t != 0)       //å¾ªç¯ç›´åˆ°tä¸º0
+            {
+                --pv_p;
+                if(pv_p == -1)
+                {
+                    cout<<"\n\n"<<"è¯­æ³•é”™è¯¯ï¼šæ–¹æ‹¬å·ä¸åŒ¹é…ã€‚"<<endl;
+                    return 1;
+                }
+                if(_source[pv_p] == '[') --t;   //å¦‚æœå‡ºç°äº†ä¸€ä¸ª'['ï¼Œtå‡1ã€‚
+                else if(_source[pv_p] == ']') ++t;  //å¦‚æœåˆå‡ºç°äº†ä¸€ä¸ª']'ï¼ŒtåŠ 1.
+            }
+            hasinputOrN = false;
+        case ' ':
+            break;
+        case '\0':
+            return 0;
+        }
+    }
+}
+
+void debugMemFunc()
+{
+    int _x,_y;
+    getxy(_x,_y);
+    if(debugSS == true && putFrame == false)
+    {
+        gotoxy(0,0);
+        printf("|--------");
+        setcolor(4,0);
+        printf("%05u",mem_m);
+        setcolor(7,0);
+        printf("-------------------------------------");
+        setcolor(4,0);
+        printf("%05u",mem_x);
+        setcolor(7,0);
+        printf("--------|\n|");
+        setcolor(4,0);
+        printf("  ");
+        for(int i = 0;i <= 19;++i)
+        {
+            printf("%s%02u"," ",i);
+        }
+        printf(" ");
+        setcolor(7,0);
+        printf("|\n");
+             // |   00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 |
+        printf("%s%s%s%s%s%s","|                                                               |\n"
+                             ,"|                                                               |\n"
+                             ,"|                                                               |\n"
+                             ,"|                                                               |\n"
+                             ,"|                                                               |\n"
+                             ,"-----------------------------------------------------------------");
+    }
+    else if(debugSS == false && putFrame == false)
+    {
+        gotoxy(0,0);
+        printf("|--------");
+        setcolor(4,0);
+        printf("%05u",mem_m);
+        setcolor(7,0);
+        printf("-------------------------------------");
+        setcolor(4,0);
+        printf("%05u",mem_x);
+        setcolor(7,0);
+        printf("--------|\n|");
+        setcolor(4,0);
+        printf("  ");
+        for(int i = 0;i <= 19;++i)
+        {
+            printf("%s%02u"," ",i);
+        }
+        printf(" ");
+        setcolor(7,0);
+        printf("|\n");
+             // |   00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 |
+        printf("|                                                               |\n|                                                               |\n|                                                               |\n|                                                               |\n|                                                               |\n-----------------------------------------------------------------");
+        putFrame = true;
+    }
+    setcolor(4,0);
+    for(int i = 1;i <= 5;++i)
+    {
+        gotoxy(1,i+1);
+        printf("%02d",i);
+    }
+    for(int i = 0;i <= 19;++i)
+    {
+        for(int j = 1;j <= 5;++j)
+        {
+            if((20 * ( j - 1 ) + i) % 2 != 0) setcolor(14,0);
+            else setcolor(11,0);
+            if(mem_x == 32767)
+                if(20 * ( j - 1 ) + i > 67)
+                continue;
+            gotoxy(4+3*i,j+1);
+            printf("%02d",(int)c[mem_m + 20 * ( j - 1 ) + i]);
+        }
+    }
+    setcolor(7,0);
+    gotoxy(_x,_y);
+}
+
+void debugSSFunc(const string& _source,uint _pv_p)
+{
+    int _x,_y;
+    getxy(_x,_y);
+    setcolor(7,0);
+    if(debugMem == true)
+    {
+        uint t = _pv_p;
+        int m_x = 32;
+        if(_y < 10) _y = 10;
+        if(putFrame == false)
+        {
+            gotoxy(0,8);
+            printf("%s%s","|                                                               |\n" //x:65
+                         ,"-----------------------------------------------------------------");
+            putFrame = true;
+        }
+        gotoxy(m_x,8);
+        if(ranOrN == false)
+        {
+            setcolor(7,9);
+            printf("%c",_source[_pv_p]);
+            setcolor(7,0);
+        }
+        else if(_source[_pv_p] == ',' and hasinputOrN == false)
+        {
+            setcolor(7,12);
+            printf("%c",_source[_pv_p]);
+            setcolor(7,0);
+        }
+        else
+        {
+            setcolor(7,5);
+            printf("%c",_source[_pv_p]);
+            setcolor(7,0);
+        }
+        while(true)
+        {
+            if(_pv_p == 0 or m_x <= 1) break;
+            --_pv_p;
+            --m_x;
+            gotoxy(m_x,8);
+            printf("%c",_source[_pv_p]);
+        }
+        m_x = 32;
+        _pv_p = t;
+        while(true)
+        {
+            if(_pv_p == _source.length() or m_x >= 63) break;
+            ++_pv_p;
+            ++m_x;
+            gotoxy(m_x,8);
+            printf("%c",_source[_pv_p]);
+        }
+    }
+    else
+    {
+        uint t = _pv_p;
+        int m_x = 32;
+        if(_y < 3) _y = 3;
+        if(putFrame == false)
+        {
+            gotoxy(0,0);
+            printf("%s%s%s","-----------------------------------------------------------------\n"
+                           ,"|                                                               |\n"
+                           ,"-----------------------------------------------------------------");
+            putFrame = true;
+        }
+        gotoxy(m_x,1);
+        if(ranOrN == false)
+        {
+            setcolor(7,9);
+            printf("%c",_source[_pv_p]);
+            setcolor(7,0);
+        }
+        else if(_source[_pv_p] == ',' and hasinputOrN == false)
+        {
+            setcolor(7,12);
+            printf("%c",_source[_pv_p]);
+            setcolor(7,0);
+        }
+        else
+        {
+            setcolor(7,5);
+            printf("%c",_source[_pv_p]);
+            setcolor(7,0);
+        }
+        while(true)
+        {
+            if(_pv_p == 0 or m_x <= 1) break;
+            --_pv_p;
+            --m_x;
+            gotoxy(m_x,1);
+            printf("%c",_source[_pv_p]);
+        }
+        m_x = 32;
+        _pv_p = t;
+        while(true)
+        {
+            if(_pv_p == _source.length() or m_x >= 63) break;
+            ++_pv_p;
+            ++m_x;
+            gotoxy(m_x,1);
+            printf("%c",_source[_pv_p]);
+        }
+    }
+    gotoxy(_x,_y);
+}
+
+void complier(const string& sourceFileName, const string& sourceCode)
+{
+    cout<<"æ­£åœ¨ç”ŸæˆCè¯­è¨€æºæ–‡ä»¶â€¦â€¦"<<endl;
+    ofstream cpp(sourceFileName + ".c");
+    cpp<<"#include <stdio.h>\n";        //#include <stdio.h>
+    cpp<<"#include <conio.h>\n";        //#include <conio.h>
+    cpp<<"char c[32767] = \"\";\n";     //char t[32767] = "";
+    cpp<<"unsigned int p = 0;\n";       //unsigned int p = 0;
+    cpp<<"int main(){\n";               //int main(){
+    for(uint pv_p = 0;sourceCode[pv_p] != '\0';++pv_p)     //éå†ç¨‹åºä»£ç 
+    {
+        switch(sourceCode[pv_p])
+        {
+        case '<':   //æŒ‡é’ˆå‡1ï¼Œå¸¦æº¢å‡º
+            cpp<<"--p;\n"
+               <<"if(p > 32767) p = 32767;\n";
+            break;
+        case '>':   //æŒ‡é’ˆåŠ 1ï¼Œå¸¦æº¢å‡º
+            cpp<<"++p;\n"
+               <<"if(p > 32767) p = 0;\n";
+            break;
+        case '+':   //æŒ‡é’ˆæŒ‡å‘çš„å€¼åŠ 1
+            cpp<<"++c[p];\n";
+            break;
+        case '-':   //æŒ‡é’ˆæŒ‡å‘çš„å€¼å‡1
+            cpp<<"--c[p];\n";
+            break;
+        case ',':   //è¯»å–è¾“å…¥
+            cpp<<"c[p] = _getch();\n";
+            break;
+        case '.':   //è¾“å‡º
+            cpp<<"putchar(c[p]);\n";
+            break;
+        case '[':
+            cpp<<"while(c[p])\n"
+               <<"{\n";
+            break;
+        case ']':
+            cpp<<"}\n";
+            break;
+        case ' ':
+            break;
+        case '\0':
+            goto OK;
+        }
+    }
+    OK:
+        cpp<<"}\n";
+        cpp.close();
+        cout<<"ç”Ÿæˆç»“æŸã€‚"<<endl;
+        string temp = ".\\tcc\\tcc.exe " + sourceFileName + ".c -o " + sourceFileName + ".exe";
+        system(temp.c_str());
+        cout<<"æ­£åœ¨åˆ é™¤ç”Ÿæˆçš„Cè¯­è¨€æºæ–‡ä»¶â€¦â€¦"<<endl;
+        temp = ".\\" + sourceFileName + ".c";
+        size_t s = temp.length();
+        wchar_t* buffer = new wchar_t[s + 1];
+        MultiByteToWideChar(CP_ACP,0,temp.c_str(),s,buffer,s * sizeof(wchar_t));
+        buffer[s] = 0;
+        DeleteFileW(buffer);
+        delete[] buffer;
+        cout<<"ç¼–è¯‘ç»“æŸã€‚"<<endl;
+        return;
+}
+
+void gotoxy(int x,int y)
+{
+    COORD c;
+    c.X = x;
+    c.Y = y;
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),c);
+}
+
+void setcolor(int fg,int bg)
+{
+    WORD wc;
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    bg <<= 4;
+    wc = (fg & 0x000f)|(bg & 0x00f0);
+    SetConsoleTextAttribute(h,wc);
+}
+
+void getxy(int& x,int& y)
+{
+    HANDLE hStdout;
+    CONSOLE_SCREEN_BUFFER_INFO pBuffer;
+    hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    GetConsoleScreenBufferInfo(hStdout,&pBuffer);
+    x = pBuffer.dwCursorPosition.X;
+    y = pBuffer.dwCursorPosition.Y;
 }
