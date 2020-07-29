@@ -1,8 +1,8 @@
 /*
  * BrainFuck.cpp
  * CPBF: BrainFuck解释器
- * V2.1.1
- * by:氢氦锂uuo 果壳（他们是一个人）
+ * V2.2
+ * by:氢氦锂uuo 果壳
  */
 
 #include <cstdio>
@@ -686,7 +686,16 @@ void complier(const string& sourceFileName, const string& sourceCode)
         cpp<<"}\n";
         cpp.close();
         cout<<"生成结束。"<<endl;
-        string temp = ".\\tcc\\tcc.exe " + sourceFileName + ".c -o " + sourceFileName + ".exe";
+        string fileNameNoExt = sourceFileName;
+        for(string::iterator iter = fileNameNoExt.end();iter != fileNameNoExt.begin();iter--)
+        {
+            if(*iter == '.')
+            {
+                fileNameNoExt.erase(iter,fileNameNoExt.end());
+                break;
+            }
+        }
+        string temp = ".\\tcc\\tcc.exe " + sourceFileName + ".c -o " + fileNameNoExt + ".exe";
         system(temp.c_str());
         cout<<"正在删除生成的C语言源文件……"<<endl;
         temp = ".\\" + sourceFileName + ".c";
