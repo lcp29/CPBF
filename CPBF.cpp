@@ -1,7 +1,7 @@
 /*
  * BrainFuck.cpp
  * CPBF: BrainFuck解释器
- * V2.2
+ * V2.2.1
  * by:氢氦锂uuo 果壳
  */
 
@@ -82,7 +82,7 @@ int main(int argc,char* argv[])
     int srcError = checkError(source);              //源代码查错
     if(srcError == 1)
     {
-        cout<<"语法错误：‘[’数量与‘]’数量不相等。"<<endl;
+        cout<<"语法错误：‘[’与‘]’不匹配。"<<endl;
         exit(-1);
     }
     if(complie == true)
@@ -102,7 +102,7 @@ int main(int argc,char* argv[])
             else if(debugSS == true)
                 cout<<"\n\n\n";
             else if(debugMem != true and debugSS != true);
-            cout<<"打开配置文件错误，一切将按默认处理。"<<endl;
+            cout<<"打开配置文件错误，使用默认设置。"<<endl;
             confFileErr = true;
         }
         int mn = 0,mx = 99;
@@ -225,7 +225,7 @@ void init(int _argc,char* _argv[],bool& _exitOrNo,ifstream& _f_source,string& _s
     else if(_argc == 1)             //如果只有一个参数
     {
         char yn = ' ';
-        cout<<endl<<"请输入文件名(按\'Ctrl+Z\'退出)：";   //提示输入文件名
+        cout<<endl<<"请输入文件名(输入\'Ctrl+Z\'退出)：";   //提示输入文件名
         cin>>_sourceFileName;       //输入
         if(not cin)                 //如果为空（字符串不可能出错）
         {
